@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+import json
+import os
+import sys
+
+import agent
+
+data = json.load(sys.stdin)
+route = {
+    "instance": os.environ["MODULE_ID"],
+    "url": "http://127.0.0.1:" + os.environ["WEB_PORT"],
+    "host": data["host"],
+    "http2https": data.get("http2https", True),
+    "lets_encrypt_check": True,
+    "lets_encrypt_cleanup": True,
+}
+if "lets_encrypt" in data:
+    route["lets_encrypt"] = data["lets_encrypt"]
+agent.set_route(route)

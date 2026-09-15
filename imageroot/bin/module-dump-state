@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Called by the core before the backup: write a consistent SQL dump of the
+# eLabFTW database into the state directory (state/elabftw.sql, listed in
+# etc/state-include.conf). The MySQL volume itself is not backed up.
+
+set -e -o pipefail
+exec 1>&2
+
+podman exec elabftw-db sh -c 'mysqldump --single-transaction --routines --triggers -u root --password="$MYSQL_ROOT_PASSWORD" elabftw' > elabftw.sql.tmp
+mv elabftw.sql.tmp elabftw.sql
+echo "eLabFTW database dumped to state/elabftw.sql ($(du -h elabftw.sql | cut -f1))"

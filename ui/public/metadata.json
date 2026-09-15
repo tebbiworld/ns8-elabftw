@@ -1,0 +1,17 @@
+{
+  "name": "eLabFTW",
+  "description": {
+    "en": "eLabFTW — electronic lab notebook with chemical structure editor, inventory and AD/LDAP login",
+    "de": "eLabFTW — elektronisches Laborjournal mit Struktureditor, Inventar und AD/LDAP-Anmeldung"
+  },
+  "categories": ["office"],
+  "authors": [
+    { "name": "tebbi", "email": "info@ebbinghaus.world" }
+  ],
+  "docs": {
+    "documentation_url": "https://doc.elabftw.net/",
+    "bug_url": "https://github.com/tebbiworld/ns8-elabftw/issues",
+    "code_url": "https://github.com/tebbiworld/ns8-elabftw"
+  },
+  "source": "ghcr.io/tebbiworld/elabftw"
+}

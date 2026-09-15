@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Write the LDAP/AD settings into eLabFTW's configuration (its `config` table)
+# through the application's own Config class, so the bind password is
+# encrypted with SECRET_KEY exactly as the sysadmin page would do it. Waits for
+# the application (and therefore the database schema) to be up first.
+
+import json
+import os
+import subprocess
+import sys
+import time
+import urllib.request
+
+data = json.load(sys.stdin)
+env = os.environ
+port = env["WEB_PORT"]
+
+# wait for nginx + database schema (first start installs it)
+for _ in range(120):
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/healthcheck", timeout=5) as r:
+            if 200 <= r.status < 300:  # nginx answers 204
+                break
+    except Exception:
+        pass
+    time.sleep(5)
+else:
+    print("eLabFTW did not become healthy in time; LDAP settings not applied", file=sys.stderr)
+    sys.exit(1)
+
+enabled = env.get("LDAP_ENABLED", "False") == "True" and env.get("LDAP_HOST") and env.get("LDAP_BASE_DN")
+params = {
+    "ldap_toggle": "1" if enabled else "0",
+    "ldap_scheme": env.get("LDAP_SCHEME", "ldaps"),
+    "ldap_host": env.get("LDAP_CONTAINER_HOST", ""),
+    "ldap_port": env.get("LDAP_PORT", "636"),
+    "ldap_base_dn": env.get("LDAP_BASE_DN", ""),
+    "ldap_username": env.get("LDAP_BIND_DN", ""),
+    "ldap_search_attr": env.get("LDAP_USER_ATTRIBUTE", "sAMAccountName"),
+    "ldap_email": env.get("LDAP_MAIL_ATTRIBUTE", "mail"),
+    "ldap_firstname": env.get("LDAP_FIRSTNAME_ATTRIBUTE", "givenName"),
+    "ldap_lastname": env.get("LDAP_LASTNAME_ATTRIBUTE", "sn"),
+    "ldap_use_tls": "0",
+}
+if env.get("LDAP_BIND_PASSWORD"):
+    params["ldap_password"] = env["LDAP_BIND_PASSWORD"]
+
+php = r'''
+require "/elabftw/vendor/autoload.php";
+$params = json_decode(stream_get_contents(STDIN), true);
+$config = \Elabftw\Models\Config::getConfig();
+$config->patch(\Elabftw\Enums\Action::Update, $params);
+echo "ldap config applied\n";
+'''
+subprocess.run(["podman", "exec", "-i", "elabftw-app", "php", "-r", php],
+               input=json.dumps(params), text=True, check=True, stdout=sys.stderr)

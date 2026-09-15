@@ -1,0 +1,36 @@
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# eLabFTW pod: the application (nginx + php-fpm, official elabimg) and its
+# MySQL database share one network namespace, so the app reaches the database
+# on 127.0.0.1:3306. Only the app port 8080 is published, on the node loopback,
+# and fronted by Traefik (TLS, Let's Encrypt).
+
+[Unit]
+Description=eLabFTW pod
+Requires=elabftw-db.service elabftw-app.service
+Before=elabftw-db.service elabftw-app.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+TimeoutStartSec=120
+ExecStartPre=/bin/rm -f %t/elabftw.pid %t/elabftw.pod-id
+ExecStartPre=/usr/bin/podman pod create \
+    --infra-conmon-pidfile %t/elabftw.pid \
+    --pod-id-file %t/elabftw.pod-id \
+    --name elabftw \
+    --publish 127.0.0.1:${WEB_PORT}:8080 \
+    --replace
+ExecStart=/usr/bin/podman pod start --pod-id-file %t/elabftw.pod-id
+ExecStop=/usr/bin/podman pod stop --ignore --pod-id-file %t/elabftw.pod-id -t 30
+ExecStopPost=/usr/bin/podman pod rm --ignore -f --pod-id-file %t/elabftw.pod-id
+PIDFile=%t/elabftw.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

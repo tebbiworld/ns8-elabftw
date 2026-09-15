@@ -1,0 +1,97 @@
+======eLabFTW======
+[[https://www.elabftw.net/|eLabFTW]] is an open-source electronic lab notebook (ELN): experiments with versioning and timestamps, a database for chemicals, samples and equipment, teams, templates, an integrated chemical structure editor (Ketcher) with substructure search, scheduler for equipment booking, and exports as PDF, ZIP or ELN archives. Widely used at universities and in research labs.
+
+====Announcement and talks====
+The eLabFTW app announcement TBA
+
+eLabFTW is a community application from the [[ns8:tebbiworld_repository|tebbiworld]] repository. Documentation and source can be found on [[https://github.com/tebbiworld/ns8-elabftw|Github]]
+
+=====What it does=====
+  * one pod with the official ''elabftw/elabimg'' image (nginx + php-fpm) and MySQL 8.4, published on one host name through Traefik with Let's Encrypt
+  * **Active Directory / LDAP login** configured from the module settings — written into eLabFTW's own configuration, bind password encrypted like the sysadmin page does it
+  * database schema installed on first start and migrated on module updates
+  * NS8 backup with a consistent SQL dump plus uploads and exports; restore rebuilds the database from the dump
+  * the [[ns8:applications:tsa|TSA module]] of the same repository can serve as RFC 3161 timestamp authority for eLabFTW's experiment timestamping
+
+=====Architecture=====
+
+^ Container ^ Image ^ Purpose ^
+| ''elabftw-app'' | ''docker.io/elabftw/elabimg'' (pinned) | web application, internal port 8080 → node loopback → Traefik |
+| ''elabftw-db'' | ''docker.io/library/mysql:8.4'' | database, 127.0.0.1 inside the pod |
+
+^ Volume ^ Purpose ^ Backup ^
+| ''elabftw-uploads'' | attachments | yes |
+| ''elabftw-exports'' | generated archives and PDFs | yes |
+| ''elabftw-cache'' | PHP/Twig cache | no |
+| ''elabftw-db'' | MySQL data | no — SQL dump at backup time, imported on restore |
+
+=====Installation=====
+On the NethServer 8 cluster leader:
+
+<code bash>
+add-module ghcr.io/tebbiworld/elabftw:1.0.0 1
+</code>
+
+Configure it, replacing the host name:
+
+<code bash>
+api-cli run module/elabftw1/configure-module --data '{
+  "host": "eln.example.org",
+  "lets_encrypt": true,
+  "http2https": true,
+  "timezone": "Europe/Berlin",
+  "max_upload_mb": 100
+}'
+</code>
+
+Then open ''%%https://eln.example.org/register.php%%'' — **the first account created becomes the system administrator**. Teams, timestamping, mail and all other application settings are managed in eLabFTW's sysadmin panel.
+
+=====Settings=====
+
+^ Setting ^ Description ^
+| Host name | %%FQDN%% under which eLabFTW is published; also its ''SITE_URL''. |
+| Let's Encrypt certificate | Requests a certificate for the host name. Requires that ports 80 and 443 of this name reach this node. |
+| HTTP to HTTPS redirection | Redirects HTTP to HTTPS. |
+| Timezone | Timezone of PHP and the database. |
+| Maximum upload size | Largest attachment a user may upload. |
+
+====Active Directory and LDAP====
+Optional. When enabled, users log in with their directory account on the normal login page and pick their team on first login; the account is created on the fly (name and e-mail from the directory). The very first account of the instance — registered locally or created by an LDAP login — becomes the system administrator; every later account waits for validation by an admin (eLabFTW default).
+
+^ Setting ^ Description ^
+| LDAP URL | ''%%ldaps://ad.example.org:636%%'' or ''%%ldap://ad.example.org:389%%''. Self-signed certificates (Samba AD, internal CA) are accepted. |
+| Search base DN | e.g. ''DC=ad,DC=example,DC=org'' |
+| Bind DN and bind password | Read-only service account for the directory search. The password is stored encrypted with the instance's ''SECRET_KEY''. |
+| Login attribute | Attribute matched against the login name: ''sAMAccountName'' for Active Directory, ''uid'' for OpenLDAP; several attributes may be separated by commas. |
+| Mail attribute | eLabFTW requires an e-mail address per user. On Active Directory where ''mail'' is empty use ''userPrincipalName''. |
+| First / last name attribute | ''givenName'' / ''sn'' by default. |
+| Validate LDAPS certificate | Off by default — Samba AD and internal CAs present self-signed certificates. On = ''TLS_REQCERT demand''. |
+
+If the directory server is the node itself (NS8 Samba account provider), the module lets the container reach it through ''host.containers.internal'' automatically.
+
+=====Backup=====
+Before every NS8 backup the module dumps the database with ''mysqldump --single-transaction'' into its state directory; the backup contains that dump, the module settings and secrets, uploads and exports. A restore imports the dump into a fresh database volume, carries the original ''SECRET_KEY'' over (eLabFTW encrypted stored passwords with it) and re-applies the configuration.
+
+=====Licences and trademarks=====
+Unofficial, community-built package, not affiliated with or endorsed by the eLabFTW project or Deltablot. "eLabFTW" is a trademark of its owners and is used here only to identify the packaged software; the module logo is the official project logo, used unmodified.
+
+eLabFTW is licensed AGPL-3.0; the official images are pulled at runtime and not redistributed. The module's own code is licensed %%GPL%%-3.0-or-later.
+
+=====Links=====
+
+  * [[https://doc.elabftw.net/|eLabFTW documentation]]
+  * [[https://github.com/elabftw/elabftw|eLabFTW on Github]]
+  * [[https://github.com/elabftw/elabimg|Official container image]]
+  * [[https://github.com/tebbiworld/ns8-elabftw|Module on Github]]
+  * [[https://github.com/tebbiworld/ns8-elabftw/issues|Bug reports]]
+
+=====Disclaimer=====
+Private hobby project, shared as-is. No warranty, no guaranteed support, use at your own risk.
+
+----
+{{tag>application}}
+{{tag>category:Productivity}}
+{{tag>status:Alpha}}
+{{tag>certlevel:1}}
+{{tag>repo:tebbiworld}}
+{{tag>description:"eLabFTW electronic lab notebook with chemical structure editor and AD/LDAP login"}}

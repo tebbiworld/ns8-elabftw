@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# The core's update-module action does not restart the module's units. Restart
+# the pod so a new pinned eLabFTW version runs right away; its entrypoint
+# migrates the database schema (AUTO_DB_UPDATE).
+
+set -e
+exec 1>&2
+
+systemctl --user daemon-reload
+systemctl --user restart elabftw.service

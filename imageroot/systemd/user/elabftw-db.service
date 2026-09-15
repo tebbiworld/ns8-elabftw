@@ -1,0 +1,47 @@
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# MySQL for eLabFTW (upstream recommends MySQL 8.x). The database volume is
+# not part of the NS8 backup; module-dump-state writes a consistent SQL dump
+# into the state directory instead (see bin/module-dump-state).
+
+[Unit]
+Description=eLabFTW database
+BindsTo=elabftw.service
+After=elabftw.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+TimeoutStartSec=120
+TimeoutStopSec=70
+ExecStartPre=/bin/rm -f %t/elabftw-db.pid %t/elabftw-db.ctr-id
+ExecStart=/usr/bin/podman run \
+    --conmon-pidfile %t/elabftw-db.pid \
+    --cidfile %t/elabftw-db.ctr-id \
+    --cgroups=no-conmon \
+    --pod-id-file %t/elabftw.pod-id \
+    --replace -d --name elabftw-db \
+    --volume elabftw-db:/var/lib/mysql:Z \
+    --env MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} \
+    --env MYSQL_DATABASE=elabftw \
+    --env MYSQL_USER=elabftw \
+    --env MYSQL_PASSWORD=${MYSQL_PASSWORD} \
+    --env TZ=${TZ} \
+    --health-cmd "mysqladmin ping -h 127.0.0.1 -u root --password=${MYSQL_ROOT_PASSWORD} || exit 1" \
+    --health-interval 10s \
+    --health-timeout 5s \
+    --health-retries 12 \
+    ${MYSQL_IMAGE}
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/elabftw-db.ctr-id -t 60
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/elabftw-db.ctr-id
+PIDFile=%t/elabftw-db.pid
+Type=forking
+SyslogIdentifier=%u
+
+[Install]
+WantedBy=default.target

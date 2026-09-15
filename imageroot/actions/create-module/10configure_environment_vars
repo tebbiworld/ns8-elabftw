@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Seed a fresh instance: the published port, database passwords and the
+# eLabFTW SECRET_KEY (a Defuse\Crypto key; eLabFTW encrypts stored secrets such
+# as the LDAP bind password with it, so it must never change afterwards).
+# The key is generated with the application's own library from the pinned
+# image, which the node has already pulled at this point.
+
+import os
+import secrets
+import subprocess
+
+import agent
+
+tcp_ports = [p.strip() for p in os.environ.get("TCP_PORTS", "").split(",") if p.strip()]
+agent.set_env("WEB_PORT", tcp_ports[0] if tcp_ports else "8080")
+agent.set_env("MYSQL_ROOT_PASSWORD", secrets.token_hex(16))
+agent.set_env("MYSQL_PASSWORD", secrets.token_hex(16))
+key = subprocess.run(
+    ["podman", "run", "--rm", "--network=none", "--entrypoint", "php", os.environ["ELABIMG_IMAGE"], "-r",
+     'require "/elabftw/vendor/autoload.php"; echo \\Defuse\\Crypto\\Key::createNewRandomKey()->saveToAsciiSafeString();'],
+    capture_output=True, text=True, check=True,
+).stdout.strip()
+agent.set_env("SECRET_KEY", key)
+agent.set_env("TZ", "UTC")
+agent.set_env("MAX_UPLOAD_MB", "100")
+agent.set_env("LDAP_ENABLED", "False")

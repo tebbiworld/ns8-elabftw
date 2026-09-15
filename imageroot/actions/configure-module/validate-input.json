@@ -1,0 +1,131 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Configure elabftw",
+    "$id": "http://nethserver.org/json-schema/task/input/elabftw/configure-module",
+    "description": "Configure the eLabFTW module",
+    "examples": [
+        {
+            "host": "eln.example.org",
+            "lets_encrypt": true,
+            "http2https": true,
+            "timezone": "Europe/Berlin",
+            "max_upload_mb": 100,
+            "ldap_enabled": true,
+            "ldap_url": "ldaps://ad.example.org:636",
+            "ldap_base_dn": "DC=ad,DC=example,DC=org",
+            "ldap_bind_dn": "ldapservice@ad.example.org",
+            "ldap_bind_password": "secret",
+            "ldap_user_attribute": "sAMAccountName",
+            "ldap_mail_attribute": "userPrincipalName",
+            "ldap_firstname_attribute": "givenName",
+            "ldap_lastname_attribute": "sn",
+            "ldap_validate_cert": false
+        }
+    ],
+    "type": "object",
+    "required": [
+        "host"
+    ],
+    "properties": {
+        "host": {
+            "type": "string",
+            "title": "Host name",
+            "description": "Fully qualified domain name under which eLabFTW is published (SITE_URL).",
+            "format": "hostname",
+            "pattern": "\\."
+        },
+        "lets_encrypt": {
+            "type": "boolean",
+            "title": "Let's Encrypt certificate",
+            "description": "Request a valid Let's Encrypt certificate for the host name."
+        },
+        "http2https": {
+            "type": "boolean",
+            "title": "HTTP to HTTPS redirection",
+            "description": "Redirect all HTTP requests to HTTPS."
+        },
+        "timezone": {
+            "type": "string",
+            "title": "Timezone",
+            "description": "TZ database name for PHP and MySQL, e.g. Europe/Berlin.",
+            "default": "UTC"
+        },
+        "max_upload_mb": {
+            "type": "integer",
+            "title": "Maximum upload size (MB)",
+            "description": "Largest attachment a user may upload (MAX_UPLOAD_SIZE).",
+            "minimum": 1,
+            "maximum": 10000,
+            "default": 100
+        },
+        "ldap_enabled": {
+            "type": "boolean",
+            "title": "Enable AD/LDAP login",
+            "default": false
+        },
+        "ldap_url": {
+            "type": "string",
+            "title": "LDAP URL",
+            "description": "ldaps://ad.example.org:636 or ldap://ad.example.org:389."
+        },
+        "ldap_base_dn": {
+            "type": "string",
+            "title": "Search base DN"
+        },
+        "ldap_bind_dn": {
+            "type": "string",
+            "title": "Bind DN",
+            "description": "Read-only service account used to search the directory."
+        },
+        "ldap_bind_password": {
+            "type": "string",
+            "title": "Bind password",
+            "description": "Empty keeps the stored value.",
+            "format": "password"
+        },
+        "ldap_user_attribute": {
+            "type": "string",
+            "title": "Login attribute",
+            "description": "Attribute matched against the entered login name (sAMAccountName for AD, uid for OpenLDAP). Several attributes may be separated by commas."
+        },
+        "ldap_mail_attribute": {
+            "type": "string",
+            "title": "Mail attribute",
+            "description": "Attribute holding the user's e-mail; eLabFTW requires one. On Active Directory with empty mail fields use userPrincipalName."
+        },
+        "ldap_firstname_attribute": {
+            "type": "string",
+            "title": "First name attribute",
+            "default": "givenName"
+        },
+        "ldap_lastname_attribute": {
+            "type": "string",
+            "title": "Last name attribute",
+            "default": "sn"
+        },
+        "ldap_validate_cert": {
+            "type": "boolean",
+            "title": "Validate LDAPS certificate",
+            "description": "Verify the directory server's TLS certificate (TLS_REQCERT demand). Off by default for self-signed certificates (Samba AD, internal CA).",
+            "default": false
+        }
+    },
+    "allOf": [
+        {
+            "if": {
+                "properties": {
+                    "ldap_enabled": {
+                        "const": true
+                    }
+                }
+            },
+            "then": {
+                "required": [
+                    "ldap_url",
+                    "ldap_base_dn",
+                    "ldap_bind_dn"
+                ]
+            }
+        }
+    ]
+}

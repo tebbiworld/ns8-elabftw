@@ -1,0 +1,57 @@
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# eLabFTW application container (official elabimg). Runtime settings come from
+# state/elabftw.env (DB access, SECRET_KEY, SITE_URL, upload limits, AUTO_DB_*
+# so the schema is installed on first start and updated on upgrades). Behind
+# Traefik the container serves plain HTTP on 8080 (DISABLE_HTTPS=true).
+#
+# The image expects to run as an unprivileged user (php-fpm refuses to start
+# as root: "user has not been defined"), like the upstream compose file does:
+# --user 1000:1000, volumes chowned to that user (:U) and a fresh tmpfs on /run
+# at every start (s6 and nginx write their runtime files there; leftovers from a
+# previous run would break the entrypoint).
+#
+# Volumes: uploads (attachments), exports (generated archives/PDFs) and the
+# PHP/twig cache. Uploads and exports are part of the NS8 backup.
+
+[Unit]
+Description=eLabFTW application
+BindsTo=elabftw.service
+After=elabftw.service elabftw-db.service
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%S/state/environment
+WorkingDirectory=%S/state
+Restart=always
+TimeoutStartSec=600
+TimeoutStopSec=70
+ExecStartPre=/bin/touch %S/state/elabftw.env
+ExecStartPre=/bin/bash -c '[ -s %S/state/ldap.conf ] || echo "TLS_REQCERT never" > %S/state/ldap.conf'
+ExecStartPre=/bin/rm -f %t/elabftw-app.pid %t/elabftw-app.ctr-id
+ExecStartPre=/bin/bash -c 'for i in $(seq 1 120); do [ "$(/usr/bin/podman inspect -f "{{.State.Health.Status}}" elabftw-db 2>/dev/null)" = "healthy" ] && exit 0; sleep 2; done; echo "timeout waiting for elabftw-db" >&2; exit 1'
+ExecStart=/usr/bin/podman run \
+    --conmon-pidfile %t/elabftw-app.pid \
+    --cidfile %t/elabftw-app.ctr-id \
+    --cgroups=no-conmon \
+    --pod-id-file %t/elabftw.pod-id \
+    --replace -d --name elabftw-app \
+    --user 1000:1000 \
+    --tmpfs /run:rw,exec,size=64m,mode=1777 \
+    --volume elabftw-uploads:/var/lib/elabftw/uploads:U,Z \
+    --volume elabftw-exports:/var/lib/elabftw/exports:U,Z \
+    --volume elabftw-cache:/var/cache/elabftw:U,Z \
+    --volume %S/state/ldap.conf:/etc/openldap/ldap.conf:ro,z \
+    --env-file %S/state/elabftw.env \
+    ${ELABIMG_IMAGE}
+ExecStop=/usr/bin/podman stop --ignore --cidfile %t/elabftw-app.ctr-id -t 30
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/elabftw-app.ctr-id
+PIDFile=%t/elabftw-app.pid
+Type=forking
+SyslogIdentifier=%u
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,36 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Load the SQL dump from the restored state directory into a fresh database
+# volume with the MySQL image's first-start import (docker-entrypoint-initdb.d):
+# the dump is imported, then a sourced init script stops the temporary server
+# and the container exits (same technique as the NethServer Mattermost module).
+
+set -e -o pipefail
+exec 1>&2
+
+if [ ! -s elabftw.sql ]; then
+    echo "no elabftw.sql in the restored state: skipping database restore"
+    exit 0
+fi
+podman volume rm -f elabftw-db >/dev/null 2>&1 || true
+rm -rf restore && mkdir -p restore
+cp elabftw.sql restore/10-elabftw.sql
+cat > restore/zz-stop.sh <<'EOS'
+docker_temp_server_stop
+exit 0
+EOS
+podman run --rm --network=none --replace --name elabftw-restore \
+    --volume ./restore:/docker-entrypoint-initdb.d:Z \
+    --volume elabftw-db:/var/lib/mysql:Z \
+    --env MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}" \
+    --env MYSQL_DATABASE=elabftw \
+    --env MYSQL_USER=elabftw \
+    --env MYSQL_PASSWORD="${MYSQL_PASSWORD}" \
+    "${MYSQL_IMAGE}"
+rm -rf restore elabftw.sql
+echo "database restored from dump"

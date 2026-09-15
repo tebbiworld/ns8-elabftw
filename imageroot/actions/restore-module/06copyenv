@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Carry the settings and secrets of the backed-up instance over to the new
+# one. SECRET_KEY must be the original: eLabFTW encrypted stored passwords
+# with it; the database passwords must match the dump's users.
+
+import json
+import sys
+
+import agent
+
+request = json.load(sys.stdin)
+env = request["environment"]
+keep = ["TRAEFIK_HOST", "TRAEFIK_HTTP2HTTPS", "SECRET_KEY", "MYSQL_ROOT_PASSWORD", "MYSQL_PASSWORD", "TZ", "MAX_UPLOAD_MB",
+        "LDAP_ENABLED", "LDAP_URL", "LDAP_HOST", "LDAP_PORT", "LDAP_SCHEME", "LDAP_BASE_DN", "LDAP_BIND_DN", "LDAP_BIND_PASSWORD",
+        "LDAP_USER_ATTRIBUTE", "LDAP_MAIL_ATTRIBUTE", "LDAP_FIRSTNAME_ATTRIBUTE", "LDAP_LASTNAME_ATTRIBUTE", "LDAP_CONTAINER_HOST", "LDAP_VALIDATE_CERT"]
+agent.mset_env({k: env[k] for k in keep if k in env})
