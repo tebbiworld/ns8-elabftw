@@ -9,13 +9,21 @@
 # the Traefik route, starts the pod and re-applies the LDAP configuration.
 
 import os
+import sys
 
 import agent
 
 env = os.environ
+if not env.get("TRAEFIK_HOST"):
+    # The original instance was backed up before it was ever configured: there
+    # is nothing to re-apply, and configure-module requires a host name.
+    print(agent.SD_NOTICE + "no host name in the restored settings: configure the module from the UI", file=sys.stderr)
+    sys.exit(0)
+
 data = {
     "host": env["TRAEFIK_HOST"],
     "http2https": env.get("TRAEFIK_HTTP2HTTPS", "True") == "True",
+    "lets_encrypt": env.get("TRAEFIK_LETS_ENCRYPT", "False") == "True",
     "timezone": env.get("TZ", "UTC"),
     "max_upload_mb": int(env.get("MAX_UPLOAD_MB", "100")),
     "ldap_enabled": env.get("LDAP_ENABLED", "False") == "True",
@@ -28,5 +36,12 @@ data = {
     "ldap_lastname_attribute": env.get("LDAP_LASTNAME_ATTRIBUTE", "sn"),
     "ldap_validate_cert": env.get("LDAP_VALIDATE_CERT", "false") == "true",
 }
+if "TRAEFIK_LETS_ENCRYPT" not in env:
+    # A backup taken with a module version that did not record the setting: say
+    # so instead of silently asserting "off". The route is created without a
+    # certificate request; enable Let's Encrypt again in the settings.
+    data.pop("lets_encrypt", None)
+    print(agent.SD_WARNING + "the backup does not tell whether Let's Encrypt was enabled: the route is restored without it", file=sys.stderr)
+
 response = agent.tasks.run(agent_id=env["AGENT_ID"], action="configure-module", data=data)
 agent.assert_exp(response["exit_code"] == 0, "The configure-module subtask failed!")
