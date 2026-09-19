@@ -17,6 +17,8 @@ import sys
 import time
 import urllib.request
 
+import modsecrets
+
 data = json.load(sys.stdin)
 env = os.environ
 port = env["WEB_PORT"]
@@ -48,8 +50,8 @@ params = {
     "ldap_lastname": env.get("LDAP_LASTNAME_ATTRIBUTE", "sn"),
     "ldap_use_tls": "0",
 }
-if env.get("LDAP_BIND_PASSWORD"):
-    params["ldap_password"] = env["LDAP_BIND_PASSWORD"]
+if modsecrets.get("LDAP_BIND_PASSWORD"):
+    params["ldap_password"] = modsecrets.get("LDAP_BIND_PASSWORD")
 
 php = r'''
 require "/elabftw/vendor/autoload.php";

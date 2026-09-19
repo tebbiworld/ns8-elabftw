@@ -9,4 +9,5 @@ import subprocess
 
 units = ["elabftw.service", "elabftw-db.service", "elabftw-app.service"]
 subprocess.run(["systemctl", "--user", "enable", *units], check=True)
-subprocess.run(["systemctl", "--user", "restart", "elabftw.service"], check=True)
+# List every unit: restarting only the pod does not reliably cycle its children.
+subprocess.run(["systemctl", "--user", "restart", *units], check=True)
