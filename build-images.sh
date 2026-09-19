@@ -15,7 +15,7 @@ reponame="elabftw"
 # exposes ${ELABIMG_IMAGE} / ${MYSQL_IMAGE} to the units). Official eLabFTW
 # image (nginx + php-fpm, s6) and MySQL as recommended by upstream.
 elabimg_image="docker.io/elabftw/elabimg:6.0.1"
-mysql_image="docker.io/library/mysql:8.4"
+mysql_image="docker.io/library/mysql:8.4.10"
 
 runtime_images=(
     "${elabimg_image}"
