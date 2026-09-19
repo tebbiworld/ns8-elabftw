@@ -15,6 +15,12 @@ Alignment with the NethServer module conventions (NethServer/agents skills).
 
 - Robot Framework tests (install, update from the previous release, backup and restore) run on real NS8 nodes through `stephdl/ns8-ci-actions`.
 
+### Platform integration
+
+- **Clone and move.** New `clone-module` step (a link to the restore step): a cloned or moved instance gets its route and settings back instead of coming up unconfigured.
+- `org.nethserver.volumes`: the bulk-data volume(s) `elabftw-uploads elabftw-exports` can be placed on an additional disk when the module is installed.
+- Release notes are linked from the software centre (`relnotes_url`).
+
 ## 1.0.0 — 2026-09-15
 
 - Initial release: eLabFTW from the official image (pinned) with MySQL 8.4 in
