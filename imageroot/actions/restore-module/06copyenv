@@ -13,10 +13,20 @@ import json
 import sys
 
 import agent
+import modsecrets
 
 request = json.load(sys.stdin)
 env = request["environment"]
-keep = ["TRAEFIK_HOST", "TRAEFIK_HTTP2HTTPS", "SECRET_KEY", "MYSQL_ROOT_PASSWORD", "MYSQL_PASSWORD", "TZ", "MAX_UPLOAD_MB",
-        "LDAP_ENABLED", "LDAP_URL", "LDAP_HOST", "LDAP_PORT", "LDAP_SCHEME", "LDAP_BASE_DN", "LDAP_BIND_DN", "LDAP_BIND_PASSWORD",
+keep = ["TRAEFIK_HOST", "TRAEFIK_HTTP2HTTPS", "TRAEFIK_LETS_ENCRYPT", "TZ", "MAX_UPLOAD_MB",
+        "LDAP_ENABLED", "LDAP_URL", "LDAP_HOST", "LDAP_PORT", "LDAP_SCHEME", "LDAP_BASE_DN", "LDAP_BIND_DN",
         "LDAP_USER_ATTRIBUTE", "LDAP_MAIL_ATTRIBUTE", "LDAP_FIRSTNAME_ATTRIBUTE", "LDAP_LASTNAME_ATTRIBUTE", "LDAP_CONTAINER_HOST", "LDAP_VALIDATE_CERT"]
 agent.mset_env({k: env[k] for k in keep if k in env})
+
+# Secrets come back with the restored state/passwords.env. A backup taken with
+# module version 1.0.0 still carries them in the environment: move them to the
+# file. SECRET_KEY must be the original one, the database content is encrypted
+# with it.
+legacy = {k: env[k] for k in ("SECRET_KEY", "MYSQL_ROOT_PASSWORD", "MYSQL_PASSWORD", "LDAP_BIND_PASSWORD") if env.get(k)}
+if legacy:
+    modsecrets.write(legacy)
+    print("restored legacy secrets from the backup environment into passwords.env", file=sys.stderr)

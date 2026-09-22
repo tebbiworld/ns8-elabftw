@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.0 — 2026-09-19
+
+Alignment with the NethServer module conventions (NethServer/agents skills).
+
+### Changed
+
+- **Secrets moved out of the module environment.** `SECRET_KEY`, the MySQL passwords and the LDAP bind password are now kept in `state/passwords.env` (mode 0600) instead of `state/environment`, which NS8 mirrors to Redis in plain text. Existing installations are migrated on update; the values do not change. The generated `elabftw.env` is private (0600), and the secrets are no longer passed on the podman command line or embedded in the container health check.
+- The module backup now includes `state/passwords.env`; restore reads the secrets from it (backups taken with 1.0.0 are still restorable) and re-creates the route with the original Let's Encrypt setting.
+- MySQL pinned to `8.4.10` instead of the rolling `8.4` tag.
+- Service restarts list every unit of the pod explicitly.
+
+### Added
+
+- Robot Framework tests (install, update from the previous release, backup and restore) run on real NS8 nodes through `stephdl/ns8-ci-actions`.
+
 ## 1.0.0 — 2026-09-15
 
 - Initial release: eLabFTW from the official image (pinned) with MySQL 8.4 in

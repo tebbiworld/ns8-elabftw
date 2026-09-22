@@ -17,6 +17,14 @@ if [ ! -s elabftw.sql ]; then
     echo "no elabftw.sql in the restored state: skipping database restore"
     exit 0
 fi
+# Export only the database secrets. The file is not sourced: other values in
+# it may contain spaces or shell metacharacters.
+while IFS='=' read -r key value; do
+    case "${key}" in
+        MYSQL_PASSWORD|MYSQL_ROOT_PASSWORD) export "${key}=${value}" ;;
+    esac
+done < ./passwords.env
+
 podman volume rm -f elabftw-db >/dev/null 2>&1 || true
 rm -rf restore && mkdir -p restore
 cp elabftw.sql restore/10-elabftw.sql
@@ -27,10 +35,10 @@ EOS
 podman run --rm --network=none --replace --name elabftw-restore \
     --volume ./restore:/docker-entrypoint-initdb.d:Z \
     --volume elabftw-db:/var/lib/mysql:Z \
-    --env MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}" \
+    --env MYSQL_ROOT_PASSWORD \
     --env MYSQL_DATABASE=elabftw \
     --env MYSQL_USER=elabftw \
-    --env MYSQL_PASSWORD="${MYSQL_PASSWORD}" \
+    --env MYSQL_PASSWORD \
     "${MYSQL_IMAGE}"
 rm -rf restore elabftw.sql
 echo "database restored from dump"

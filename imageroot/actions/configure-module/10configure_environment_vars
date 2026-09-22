@@ -16,6 +16,7 @@ import sys
 import urllib.parse
 
 import agent
+import modsecrets
 
 data = json.load(sys.stdin)
 
@@ -23,6 +24,9 @@ host = data["host"]
 h2hs = data.get("http2https", True)
 agent.set_env("TRAEFIK_HOST", host)
 agent.set_env("TRAEFIK_HTTP2HTTPS", h2hs)
+if "lets_encrypt" in data:
+    # kept so restore-module can re-create the route with the same setting
+    agent.set_env("TRAEFIK_LETS_ENCRYPT", data["lets_encrypt"])
 timezone = data.get("timezone") or "UTC"
 max_upload = int(data.get("max_upload_mb") or 100)
 agent.set_env("TZ", timezone)
@@ -45,7 +49,8 @@ agent.set_env("LDAP_SCHEME", ldap_scheme)
 agent.set_env("LDAP_BASE_DN", (data.get("ldap_base_dn") or "").strip())
 agent.set_env("LDAP_BIND_DN", (data.get("ldap_bind_dn") or "").strip())
 if data.get("ldap_bind_password"):
-    agent.set_env("LDAP_BIND_PASSWORD", data["ldap_bind_password"])
+    # a secret: state/passwords.env, not the module environment
+    modsecrets.write({"LDAP_BIND_PASSWORD": data["ldap_bind_password"]})
 agent.set_env("LDAP_USER_ATTRIBUTE", (data.get("ldap_user_attribute") or "sAMAccountName").strip())
 agent.set_env("LDAP_MAIL_ATTRIBUTE", (data.get("ldap_mail_attribute") or "mail").strip())
 agent.set_env("LDAP_FIRSTNAME_ATTRIBUTE", (data.get("ldap_firstname_attribute") or "givenName").strip())
@@ -77,8 +82,8 @@ lines = [
     "DB_PORT=3306",
     "DB_NAME=elabftw",
     "DB_USER=elabftw",
-    f"DB_PASSWORD={os.environ['MYSQL_PASSWORD']}",
-    f"SECRET_KEY={os.environ['SECRET_KEY']}",
+    f"DB_PASSWORD={modsecrets.get('MYSQL_PASSWORD')}",
+    f"SECRET_KEY={modsecrets.get('SECRET_KEY')}",
     f"SITE_URL=https://{host}",
     # Traefik terminates TLS; the container serves plain HTTP on 8080
     "DISABLE_HTTPS=true",
@@ -92,6 +97,8 @@ lines = [
     "AUTO_DB_INIT=true",
     "AUTO_DB_UPDATE=true",
 ]
+# elabftw.env carries the DB password and SECRET_KEY: keep it private
+os.umask(0o077)
 with open("elabftw.env.tmp", "w") as fp:
     fp.write("\n".join(lines) + "\n")
 os.replace("elabftw.env.tmp", "elabftw.env")

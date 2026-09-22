@@ -13,4 +13,4 @@ set -e
 exec 1>&2
 
 systemctl --user daemon-reload
-systemctl --user restart elabftw.service
+systemctl --user try-restart elabftw.service elabftw-db.service elabftw-app.service
