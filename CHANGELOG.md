@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- **PHP session upload progress turned off** (`session.upload_progress.enabled = 0`), the configuration mitigation the advisory of CVE-2026-109619 (remote code execution in PHP, CVSS 9.2) names for its session lifecycle case; eLabFTW upstream does the same in its next image. eLabFTW does not use the feature. This is **not** the fix: every published eLabFTW image (6.0.1 to the nightly build of 2026-10-21) runs PHP 8.4.25/8.4.26, the fix is PHP 8.4.27, and Alpine, which eLabFTW builds on, has no package of it yet. The image pin follows once eLabFTW publishes an image with PHP 8.4.27.
+
 ## 1.1.0 — 2026-09-19
 
 Alignment with the NethServer module conventions (NethServer/agents skills).
