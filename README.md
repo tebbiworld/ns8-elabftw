@@ -12,7 +12,7 @@ One rootless pod with two containers from pinned official images:
 
 | Container | Image | Purpose |
 | --- | --- | --- |
-| `elabftw-app` | `docker.io/elabftw/elabimg` | nginx + php-fpm, internal port 8080, published on the node loopback and fronted by Traefik (TLS, Let's Encrypt) |
+| `elabftw-app` | `ghcr.io/tebbiworld/elabimg` (official `docker.io/elabftw/elabimg` with current Alpine PHP packages, see `elabimg/Containerfile`) | nginx + php-fpm, internal port 8080, published on the node loopback and fronted by Traefik (TLS, Let's Encrypt) |
 | `elabftw-db` | `docker.io/library/mysql:8.4` | database, reached on 127.0.0.1 inside the pod |
 
 | Volume | Purpose | Backup |
