@@ -38,6 +38,11 @@ Secrets are stored in passwords.env only
     ${mode} =    Run on node    runagent -m ${module_id} bash -c 'stat -c \%a "$AGENT_STATE_DIR/elabftw.env"'
     Should Be Equal As Strings    ${mode.strip()}    600
 
+The PHP hardening setting is active
+    # CVE-2026-109619 configuration mitigation, mounted from imageroot/php
+    ${out} =    Run on node    runagent -m ${module_id} podman exec elabftw-app php -r 'echo var_export(ini_get("session.upload_progress.enabled"), true);'
+    Should Be Equal As Strings    ${out.strip()}    '0'
+
 *** Keywords ***
 Login page is served
     ${out} =    Run on node    curl -fsSkL -H 'Host: elabftw.ci.test' https://127.0.0.1/login.php
