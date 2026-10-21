@@ -1,0 +1,14 @@
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# The official eLabFTW image with the PHP packages of its Alpine release
+# upgraded (see build-images.sh). Everything else is left as upstream built it.
+ARG ELABIMG_UPSTREAM
+FROM ${ELABIMG_UPSTREAM}
+# /usr/bin/php is a copy of php84 made by the upstream Dockerfile, not a file
+# of any package: refresh it, or the CLI (cron jobs, bin/console) keeps the old
+# PHP and fails to load the upgraded extensions.
+RUN apk upgrade --no-cache $(apk info | grep '^php84') \
+    && cp -p /usr/bin/php84 /usr/bin/php

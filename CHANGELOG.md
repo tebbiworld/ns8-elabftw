@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 — 2026-10-21
 
 ### Security
 
-- **PHP session upload progress turned off** (`session.upload_progress.enabled = 0`), the configuration mitigation the advisory of CVE-2026-109619 (remote code execution in PHP, CVSS 9.2) names for its session lifecycle case; eLabFTW upstream does the same in its next image. eLabFTW does not use the feature. This is **not** the fix: every published eLabFTW image (6.0.1 to the nightly build of 2026-10-21) runs PHP 8.4.25/8.4.26, the fix is PHP 8.4.27, and Alpine, which eLabFTW builds on, has no package of it yet. The image pin follows once eLabFTW publishes an image with PHP 8.4.27.
+- **PHP 8.4.27** (fix of CVE-2026-109618/109619, remote code execution in PHP, CVSS 9.2). The published eLabFTW images (6.0.1 to the nightly build of 2026-10-21) still run PHP 8.4.25/8.4.26, so the module now runs `ghcr.io/tebbiworld/elabimg:6.0.1-php8.4.27`: the official `elabftw/elabimg:6.0.1` with the PHP packages of its Alpine release (3.24) upgraded, built by `build-images.sh` from `elabimg/Containerfile`. eLabFTW stays at 6.0.1; the build refuses an image whose PHP CLI or php-fpm is not the pinned version. The automatic upstream update keeps working on the `elabftw/elabimg` pin and rebuilds the derived image for each new eLabFTW release.
+- **PHP session upload progress turned off** (`session.upload_progress.enabled = 0`), the configuration mitigation the advisory names for its session lifecycle case; eLabFTW upstream does the same in its next image. eLabFTW does not use the feature. It stays in place as defence in depth.
 
 ## 1.1.0 — 2026-09-19
 
