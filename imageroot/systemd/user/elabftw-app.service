@@ -45,6 +45,7 @@ ExecStart=/usr/bin/podman run \
     --volume elabftw-exports:/var/lib/elabftw/exports:U,Z \
     --volume elabftw-cache:/var/cache/elabftw:U,Z \
     --volume %S/state/ldap.conf:/etc/openldap/ldap.conf:ro,z \
+    --volume %S/php/zz-ns8-hardening.ini:/etc/php84/conf.d/zz-ns8-hardening.ini:ro,Z \
     --env-file %S/state/elabftw.env \
     ${ELABIMG_IMAGE}
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/elabftw-app.ctr-id -t 30
