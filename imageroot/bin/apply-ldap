@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Convenience wrapper (manual use / debugging) around
+# pypkg/elabftwldap.apply_to_app(): write the current directory-login settings
+# into eLabFTW's own configuration once the application is healthy. The
+# configure-module step and the user-domain-changed event call the function
+# directly. Run through runagent so the module environment and pypkg are set up.
+
+import elabftwldap
+
+elabftwldap.apply_to_app()
