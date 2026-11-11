@@ -157,14 +157,15 @@ def configure_host_loopback():
 
 
 def host_loopback_active():
-    """The running rootless network maps the node loopback (pasta option)."""
+    """A running pasta of the module user maps the node loopback (the pod's
+    network namespace was created with --map-host-loopback). The pod's pasta
+    uses a pod-specific netns name, so match on the option alone."""
     try:
         out = subprocess.run(["pgrep", "-u", str(os.getuid()), "-a", "pasta"],
                              capture_output=True, text=True).stdout
     except OSError:
         return False
-    return any("rootless-netns" in line and f"--map-host-loopback {LOOPBACK_ALIAS}" in line
-               for line in out.splitlines())
+    return any(f"--map-host-loopback {LOOPBACK_ALIAS}" in line for line in out.splitlines())
 
 
 def _container_host(host):
