@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Validate the directory-login settings (shared pypkg/ldapsettings.py plus the
+# eLabFTW rules in pypkg/elabftwldap.py) before they are applied. The JSON
+# schema only checks field shapes; the cross-field rules (a domain must exist,
+# a custom server needs URL/bind DN/password) live here so the UI can point at
+# the offending field.
+
+import json
+import os
+import sys
+
+import agent
+import elabftwldap
+import ldapsettings
+
+agent.set_weight(os.path.basename(__file__), 0)  # validation step, no progress weight
+
+data = json.load(sys.stdin)
+active = bool(data.get("ldap_enabled", False))
+errors = []
+
+
+def fail(field, error):
+    value = "" if field == "ldap_bind_password" else data.get(field, "")
+    errors.append({"field": field, "parameter": field, "value": value, "error": error})
+
+
+for field, error in ldapsettings.validate(data, active):
+    fail(field, error)
+for field, error in elabftwldap.validate(data, active):
+    fail(field, error)
+
+if errors:
+    agent.set_status("validation-failed")
+    json.dump(errors, fp=sys.stdout)
+    sys.exit(2)
