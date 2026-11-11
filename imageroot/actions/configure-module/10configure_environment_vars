@@ -46,7 +46,10 @@ agent.set_env("MAX_UPLOAD_MB", str(max_upload))
 # custom = an LDAP server of its own (URL/bind DN in the environment, bind
 #          password in state/passwords.env). eLabFTW supports StartTLS.
 ldap_enabled = bool(data.get("ldap_enabled", False))
+# set_env only writes the environment file; update os.environ too so the
+# loopback decision below (elabftwldap.enabled) sees this save, not the old value
 agent.set_env("LDAP_ENABLED", "true" if ldap_enabled else "false")
+os.environ["LDAP_ENABLED"] = "true" if ldap_enabled else "false"
 ldapsettings.apply(data, active=ldap_enabled, legacy_source="custom")
 
 # eLabFTW needs the attributes for mail (it refuses users without one) and the

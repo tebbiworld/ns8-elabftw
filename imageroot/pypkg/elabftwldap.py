@@ -83,7 +83,9 @@ def legacy_updates(env):
     and by restore-module when a pre-1.3.0 backup is restored."""
     if env.get("LDAP_SOURCE"):
         return {}
-    if not (env.get("LDAP_URL") or env.get("LDAP_ENABLED")):
+    # create-module seeds LDAP_ENABLED="False" (a truthy string), so test real
+    # enablement: an instance that never used LDAP has nothing to migrate.
+    if not (env.get("LDAP_URL") or enabled(env)):
         return {}
     return {
         "LDAP_SOURCE": "custom",
