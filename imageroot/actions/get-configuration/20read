@@ -5,13 +5,19 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+# Return the current configuration for the UI. The LDAP bind password is never
+# echoed back; only a boolean tells the UI whether one is stored. The directory
+# settings come from the shared pypkg/ldapsettings.py (ldap_source, ldap_domain,
+# ldap_url, ... and the list of the cluster's user domains); eLabFTW adds the
+# mail/name attributes it needs.
+
 import json
 import os
 import sys
 import urllib.request
 
 import agent
-import modsecrets
+import ldapsettings
 
 host = os.getenv("TRAEFIK_HOST", "")
 up = False
@@ -20,23 +26,21 @@ try:
         up = 200 <= r.status < 300
 except Exception:
     pass
+
 config = {
     "host": host,
     "http2https": os.getenv("TRAEFIK_HTTP2HTTPS") == "True",
     "lets_encrypt": agent.get_route(os.environ["MODULE_ID"]).get("lets_encrypt", False),
     "timezone": os.getenv("TZ", "UTC"),
     "max_upload_mb": int(os.getenv("MAX_UPLOAD_MB", "100")),
-    "ldap_enabled": os.getenv("LDAP_ENABLED") == "True",
-    "ldap_url": os.getenv("LDAP_URL", ""),
-    "ldap_base_dn": os.getenv("LDAP_BASE_DN", ""),
-    "ldap_bind_dn": os.getenv("LDAP_BIND_DN", ""),
-    "ldap_bind_password_set": bool(modsecrets.get("LDAP_BIND_PASSWORD")),
-    "ldap_user_attribute": os.getenv("LDAP_USER_ATTRIBUTE", "sAMAccountName"),
+    "ldap_enabled": os.getenv("LDAP_ENABLED", "false").strip().lower() in ("1", "true"),
     "ldap_mail_attribute": os.getenv("LDAP_MAIL_ATTRIBUTE", "mail"),
     "ldap_firstname_attribute": os.getenv("LDAP_FIRSTNAME_ATTRIBUTE", "givenName"),
     "ldap_lastname_attribute": os.getenv("LDAP_LASTNAME_ATTRIBUTE", "sn"),
-    "ldap_validate_cert": os.getenv("LDAP_VALIDATE_CERT", "false") == "true",
     "url": f"https://{host}/" if host else "",
     "app_up": up,
 }
+# Shared directory settings + the cluster's user domains for the selector.
+config.update(ldapsettings.configuration())
+
 json.dump(config, fp=sys.stdout)
