@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# A user domain of the cluster changed (e.g. a new bind password or a moved
+# domain controller). eLabFTW keeps the LDAP connection in its own database, so
+# a restart would not pick the change up: re-apply the settings instead
+# (elabftwldap.apply_to_app waits for the application and patches its config).
+# The pasta loopback mapping does not change, so no container restart is needed.
+# Only relevant when this instance logs in against that very domain.
+
+import json
+import os
+import sys
+
+import elabftwldap
+
+if (not elabftwldap.enabled()
+        or os.environ.get("LDAP_SOURCE", "domain") != "domain"):
+    sys.exit(0)
+
+event = json.load(sys.stdin)
+if event.get("domain") != os.environ.get("LDAP_DOMAIN"):
+    sys.exit(0)
+
+elabftwldap.apply_to_app()

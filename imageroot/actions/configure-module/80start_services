@@ -5,9 +5,20 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import os
 import subprocess
 
 units = ["elabftw.service", "elabftw-db.service", "elabftw-app.service"]
 subprocess.run(["systemctl", "--user", "enable", *units], check=True)
+
+# A changed pasta option (node loopback for a user domain, see
+# pypkg/elabftwldap.py) applies only to a fresh rootless network, which podman
+# creates when the first container starts after all of them stopped. The marker
+# is written by 10configure_environment_vars when the mapping changed.
+if os.path.exists(".netns-restart"):
+    print("rootless network options changed: stopping every container first", flush=True)
+    subprocess.run(["systemctl", "--user", "stop", *units], check=False)
+    os.unlink(".netns-restart")
+
 # List every unit: restarting only the pod does not reliably cycle its children.
 subprocess.run(["systemctl", "--user", "restart", *units], check=True)

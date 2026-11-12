@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Up to 1.2.0 the module offered only an LDAP server entered by hand. From
+# 1.3.0 the directory login is the shared chooser "user domain of this cluster"
+# OR "LDAP server of its own" (pypkg/ldapsettings.py). Carry an existing
+# instance over as a custom server with its previous behaviour so it does NOT
+# lose its login (see pypkg/elabftwldap.legacy_updates). The bind password
+# already lives in state/passwords.env (05migrate_secrets). Nothing to do for
+# an instance that never used the old LDAP.
+
+import os
+import sys
+
+import agent
+import elabftwldap
+
+updates = elabftwldap.legacy_updates(os.environ)
+if not updates:
+    sys.exit(0)
+
+agent.mset_env(updates)
+stale = [k for k in elabftwldap.STALE_LEGACY_KEYS if k in os.environ]
+if stale:
+    agent.munset_env(stale)
+
+print(agent.SD_NOTICE + "migrated the directory login to a custom LDAP server with its previous settings", file=sys.stderr)

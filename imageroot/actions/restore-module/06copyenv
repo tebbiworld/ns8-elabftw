@@ -13,6 +13,7 @@ import json
 import sys
 
 import agent
+import elabftwldap
 import modsecrets
 
 request = json.load(sys.stdin)
@@ -25,16 +26,27 @@ else:
     # create-module would keep its default. The core leaves the source instance's
     # environment in state/environment.clone-module until its last step.
     env = agent.read_envfile("environment.clone-module")
+
+# The derived LDAP_HOST/PORT/SCHEME/CONTAINER_HOST are intentionally NOT carried
+# over: the new code recomputes them from the shared settings below.
 keep = ["TRAEFIK_HOST", "TRAEFIK_HTTP2HTTPS", "TRAEFIK_LETS_ENCRYPT", "TZ", "MAX_UPLOAD_MB",
-        "LDAP_ENABLED", "LDAP_URL", "LDAP_HOST", "LDAP_PORT", "LDAP_SCHEME", "LDAP_BASE_DN", "LDAP_BIND_DN",
-        "LDAP_USER_ATTRIBUTE", "LDAP_MAIL_ATTRIBUTE", "LDAP_FIRSTNAME_ATTRIBUTE", "LDAP_LASTNAME_ATTRIBUTE", "LDAP_CONTAINER_HOST", "LDAP_VALIDATE_CERT"]
+        "LDAP_ENABLED", "LDAP_SOURCE", "LDAP_DOMAIN", "LDAP_GROUP", "LDAP_URL", "LDAP_START_TLS",
+        "LDAP_TLS_VERIFY", "LDAP_SCHEMA", "LDAP_BASE_DN", "LDAP_BIND_DN", "LDAP_USER_ATTRIBUTE",
+        "LDAP_MAIL_ATTRIBUTE", "LDAP_FIRSTNAME_ATTRIBUTE", "LDAP_LASTNAME_ATTRIBUTE"]
 agent.mset_env({k: env[k] for k in keep if k in env})
+
+# A backup taken before 1.3.0 has the custom-only LDAP layout (no LDAP_SOURCE):
+# migrate it to the shared chooser so the restored instance keeps its login.
+legacy = elabftwldap.legacy_updates(env)
+if legacy:
+    agent.mset_env(legacy)
+    print(agent.SD_NOTICE + "restored a pre-1.3.0 LDAP configuration as a custom server", file=sys.stderr)
 
 # Secrets come back with the restored state/passwords.env. A backup taken with
 # module version 1.0.0 still carries them in the environment: move them to the
 # file. SECRET_KEY must be the original one, the database content is encrypted
 # with it.
-legacy = {k: env[k] for k in ("SECRET_KEY", "MYSQL_ROOT_PASSWORD", "MYSQL_PASSWORD", "LDAP_BIND_PASSWORD") if env.get(k)}
-if legacy:
-    modsecrets.write(legacy)
+secrets = {k: env[k] for k in ("SECRET_KEY", "MYSQL_ROOT_PASSWORD", "MYSQL_PASSWORD", "LDAP_BIND_PASSWORD") if env.get(k)}
+if secrets:
+    modsecrets.write(secrets)
     print("restored legacy secrets from the backup environment into passwords.env", file=sys.stderr)

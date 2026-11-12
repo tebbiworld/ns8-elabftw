@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.3.0 — unreleased
+
+### Added
+
+- **Directory login chooser "user domain of this cluster" OR "LDAP server of its
+  own"**, the shared building block of the other tebbiworld modules
+  (`pypkg/ldapsettings.py`, `ui/src/components/LdapLogin.vue`, identical to
+  ns8-clamav / ns8-openwebui / ns8-arsnova). A user domain stores only its name
+  and reads the connection from the node's `ldapproxy` and its service account,
+  so a rotated bind password or a moved domain controller is followed
+  automatically (label `cluster:accountconsumer`, event `user-domain-changed`);
+  no credentials are kept in the module. The previous "LDAP server entered by
+  hand" is the second option and is unchanged in behaviour.
+
+### Changed
+
+- eLabFTW keeps the LDAP connection in its own database, so the resolved
+  settings are written through the application once it is healthy
+  (`bin/apply-ldap`, shared by `configure-module` and the `user-domain-changed`
+  event) instead of being derived from `LDAP_URL` at configure time. StartTLS on
+  an `ldap://` server is now supported (`ldap_use_tls`).
+- For a user domain the app container reaches the proxy on the node loopback
+  through `pasta --map-host-loopback 169.254.1.3` (written to the module user's
+  `containers.conf` only while a user domain is in use).
+
+### Migration
+
+- An instance configured before 1.3.0 is carried over as a custom LDAP server
+  with its previous settings (schema `ad`, no StartTLS, certificate check from
+  the former "Validate LDAPS certificate"), so its login keeps working; the
+  bind password stays in `state/passwords.env`. The same applies when a
+  pre-1.3.0 backup is restored.
+
+### Notes
+
+- eLabFTW has no user search filter: a login cannot be limited to a group (and
+  the accounts a domain hides from clients are not filtered out). The group
+  field is not shown for this module; restrict access with eLabFTW's admin
+  validation of new accounts. See the README.
+
 ## 1.2.0 — 2026-10-21
 
 ### Security
