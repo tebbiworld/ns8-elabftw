@@ -25,6 +25,8 @@
     "title": "Einstellungen",
     "configure_instance": "{instance} konfigurieren",
     "save": "Speichern",
+    "first_account_title": "Das erste Konto wird Administrator",
+    "first_account_info": "Das erste Konto dieser Instanz — über /register.php angelegt oder durch die erste Verzeichnis-Anmeldung (LDAP) erstellt — wird zum Systemadministrator. Jedes weitere Konto wartet auf Freigabe durch einen Administrator.",
     "host": "Hostname (FQDN)",
     "host_placeholder": "eln.example.org",
     "host_helper": "Öffentlicher Hostname, unter dem eLabFTW veröffentlicht wird (SITE_URL). Muss auf diesen Server auflösen.",
