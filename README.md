@@ -42,7 +42,7 @@ administrator.**
 | Host name | FQDN, used for the Traefik route and as `SITE_URL`. |
 | Let's Encrypt / HTTP → HTTPS | as in the other modules |
 | Timezone | `PHP_TIMEZONE`/`TZ` |
-| Maximum upload size | `MAX_UPLOAD_SIZE` |
+| Maximum upload size | `MAX_UPLOAD_SIZE` (nginx `client_max_body_size` and PHP `post_max_size`/`upload_max_filesize` inside the image). This is the only binding limit: the module publishes a plain Traefik route (`set-route`, no buffering middleware) and Traefik enforces no request-body-size cap of its own, so nothing in front of the app truncates an upload below this value. |
 | AD/LDAP login | see below |
 
 `SECRET_KEY` is generated once at install time with eLabFTW's own library.
