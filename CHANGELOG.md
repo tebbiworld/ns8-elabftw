@@ -13,9 +13,28 @@
   automatically (label `cluster:accountconsumer`, event `user-domain-changed`);
   no credentials are kept in the module. The previous "LDAP server entered by
   hand" is the second option and is unchanged in behaviour.
+- **eLabFTW image updated to 6.0.9** (PHP 8.4.27). The 6.0.1 → 6.0.9 database
+  migration was verified on dev with existing data (no schema change; runs on
+  start via `AUTO_DB_UPDATE`).
+- **Operating in a regulated (GMP / 21 CFR Part 11) environment** section in the
+  README: the features to validate (revisions, locking, timestamping,
+  signatures, accounts), an update-only-after-review strategy and data notes —
+  no conformity claim.
+- **Timestamping** documentation: how to use your own ns8-tsa authority (with
+  the caveat that a *Custom* authority is verified against the container trust
+  store, so a self-signed TSA root must be trusted there) and the publicly
+  trusted authorities that work out of the box.
+- A notice on the Settings page that the first account becomes the system
+  administrator.
 
 ### Changed
 
+- The LDAP certificate policy is passed to the image through the
+  `LDAP_TLS_REQCERT` environment variable instead of a read-only `ldap.conf`
+  bind mount: elabimg 6.0.9 renders `/run/openldap/ldap.conf` from a template
+  itself, and the old bind mount made the container fail to start.
+- The weekly auto-release now also keeps MySQL on its 8.4 LTS patch line
+  (`EXTRA_IMAGE`), as ns8-hashtopolis does.
 - eLabFTW keeps the LDAP connection in its own database, so the resolved
   settings are written through the application once it is healthy
   (`bin/apply-ldap`, shared by `configure-module` and the `user-domain-changed`
@@ -32,6 +51,18 @@
   the former "Validate LDAPS certificate"), so its login keeps working; the
   bind password stays in `state/passwords.env`. The same applies when a
   pre-1.3.0 backup is restored.
+- On update, `LDAP_TLS_REQCERT` is added to the env file (carried from the
+  instance's previous certificate check) and the now-unused `state/ldap.conf`
+  is removed, so an instance updated from <= 1.2.0 keeps its login and starts
+  on the new image.
+
+### Security
+
+- The backup database dump (`state/elabftw.sql`) is written `0600` instead of
+  world-readable; it holds the whole database including encrypted secrets and
+  is removed right after the backup.
+- `configure-module` fails loudly if `SECRET_KEY` is missing instead of writing
+  an empty value (it is generated once and must never be regenerated).
 
 ### Notes
 

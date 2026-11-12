@@ -105,8 +105,68 @@ instance accordingly. The group field is therefore not shown for this module.
 ### Timestamping (RFC 3161)
 
 eLabFTW can timestamp experiments with an external timestamp authority
-(sysadmin panel → Timestamping). The [TSA module](https://github.com/tebbiworld/ns8-tsa)
-of this repository provides one on the cluster.
+(sysadmin panel → Timestamping). The authority is configured inside eLabFTW,
+not in this module.
+
+- **Your own TSA.** The [ns8-tsa module](https://github.com/tebbiworld/ns8-tsa)
+  runs an RFC 3161 authority on the cluster. Choose timestamp authority
+  *Custom* and set the URL to that service's timestamp endpoint; optionally a
+  user and password if you put it behind HTTP Basic auth. **Caveat:** for a
+  *Custom* authority eLabFTW verifies the token against the container's system
+  trust store (`/etc/ssl/cert.pem`) — it does **not** take an uploaded CA
+  chain. ns8-tsa signs with a self-signed chain by default, so its tokens will
+  not verify in eLabFTW unless that TSA's root certificate is trusted inside
+  the application container (or the TSA issues from a publicly trusted CA).
+  Treat this as an open integration point; until the root is trusted, use a
+  publicly trusted authority.
+- **A publicly trusted TSA.** eLabFTW ships several (DeltaBlot's free proxy,
+  GlobalSign, Universign); these chain to public roots and work out of the box.
+  Any other public RFC 3161 service whose signing certificate is publicly
+  trusted can be used as *Custom* (for example SignFiles or Starfield).
+
+Record in your SOP which authority is used and keep its certificate reference,
+so timestamps remain verifiable (see *Operating in a regulated environment*).
+
+## Operating in a regulated (GMP / 21 CFR Part 11) environment
+
+This module packages eLabFTW; it makes **no conformity claim**. Whether an
+instance is validated and released for GMP use is decided by the operator's
+quality unit on the basis of their own URS, risk analysis and tests. The points
+below say which features to assess — each must be checked against your SOPs.
+
+**Features to validate**
+
+- **Change history / revisions.** eLabFTW keeps revisions of entries. Decide the
+  retention and whether the revision history meets your audit-trail requirement
+  (who / what / when); confirm ordinary users cannot switch it off.
+- **Locking.** Experiments can be locked (and timestamped). Define when an entry
+  is locked and who may unlock it.
+- **Timestamping.** RFC 3161 timestamps (see above) evidence that an entry
+  existed at a point in time. Validate the chosen authority, its certificate and
+  that a timestamp actually verifies. `genTime` depends on the node clock, which
+  the NS8 platform keeps NTP-disciplined.
+- **Electronic signatures.** eLabFTW can sign entries. If you rely on signatures
+  for Part 11, validate their meaning, the signer's identity and the binding to
+  the record.
+- **Access and accounts.** Personal accounts (no shared logins), roles and
+  teams, admin validation of new accounts, and a password / 2FA policy per your
+  risk analysis. Note that the **first account becomes sysadmin** (see *Install*)
+  and that a login cannot be restricted to a group (see *No group restriction*).
+
+**Update strategy — update only after review.** The module follows upstream
+eLabFTW: a weekly auto-release pins a newer image and publishes a new module
+version. NS8 does **not** update an installed instance by itself — an
+administrator applies the update deliberately through the Software Center. In a
+validated environment, apply an update only after it is reviewed and released
+under your change control: read the eLabFTW release notes, take a backup, test
+the update on a staging instance first (the schema migration runs on start via
+`AUTO_DB_UPDATE`), then update production.
+
+**Data.** `SECRET_KEY` encrypts the stored secrets and is generated once, never
+regenerated; a backup restores the original (losing it makes the encrypted
+fields unreadable), so back it up confidentially. The authoritative records are
+eLabFTW's database (dumped at backup time) and the uploads/exports volumes —
+verify the restore periodically.
 
 ## Backup and restore
 
