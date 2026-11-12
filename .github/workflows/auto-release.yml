@@ -27,6 +27,11 @@ permissions:
 env:
   UPSTREAM_IMAGES: "docker.io/elabftw/elabimg"
   TAG_REGEX: '^(?P<ver>\d+\.\d+\.\d+)$'
+  # Also keep the database on its current LTS patch line (MySQL 8.4.x), the same
+  # EXTRA_IMAGE mechanism ns8-hashtopolis uses; the module pins mysql in
+  # build-images.sh and this bumps it to the newest 8.4.z (never 8.5+).
+  EXTRA_IMAGE: "docker.io/library/mysql"
+  EXTRA_TAG_REGEX: '^(?P<ver>8\.4\.\d+)$'
   UPSTREAM_NAME: "eLabFTW"
   PIN_FILES: "build-images.sh"
   MIN_DAYS: "42"
