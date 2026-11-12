@@ -73,9 +73,10 @@ through the application's code path, exactly as the sysadmin page would
 `ldap_firstname`/`ldap_lastname`, `ldap_use_tls`). Because eLabFTW keeps LDAP in
 its own database, the settings are applied once the application is healthy
 (`bin/apply-ldap`), not from an environment file at container start. The
-certificate check uses `TLS_REQCERT demand`/`never` in a module-managed
-`ldap.conf` mounted into the container (off by default: Samba AD and internal
-CAs use self-signed certificates).
+certificate check is passed to the image as `LDAP_TLS_REQCERT=demand`/`never`
+(the elabimg entrypoint renders `/run/openldap/ldap.conf` from it); it defaults
+to on for a server of its own with TLS, and can be turned off for the
+self-signed certificates of Samba AD and internal CAs.
 
 **How the container reaches the directory.** For a user domain the app
 container talks clear LDAP to the proxy on the node loopback, reached through

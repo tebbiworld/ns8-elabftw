@@ -188,10 +188,11 @@ def _container_host(host):
 # --- eLabFTW config patch ---------------------------------------------------------
 
 def tls_reqcert():
-    """Value for /etc/openldap/ldap.conf (mounted into the app container):
-    'demand' verifies the server certificate, 'never' accepts a self-signed
-    one. Only meaningful for a TLS connection of a server of its own; the
-    user domain talks clear LDAP to the loopback proxy."""
+    """Value for the app container's LDAP_TLS_REQCERT environment variable, from
+    which the elabimg entrypoint renders /run/openldap/ldap.conf: 'demand'
+    verifies the server certificate, 'never' accepts a self-signed one. Only
+    meaningful for a TLS connection of a server of its own; the user domain
+    talks clear LDAP to the loopback proxy."""
     if os.environ.get("LDAP_SOURCE", "domain") != "custom":
         return "never"
     url = urllib.parse.urlparse(os.environ.get("LDAP_URL", ""))

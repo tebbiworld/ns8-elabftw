@@ -30,7 +30,6 @@ Restart=always
 TimeoutStartSec=600
 TimeoutStopSec=70
 ExecStartPre=/bin/touch %S/state/elabftw.env
-ExecStartPre=/bin/bash -c '[ -s %S/state/ldap.conf ] || echo "TLS_REQCERT never" > %S/state/ldap.conf'
 ExecStartPre=/bin/rm -f %t/elabftw-app.pid %t/elabftw-app.ctr-id
 ExecStartPre=/bin/bash -c 'for i in $(seq 1 120); do [ "$(/usr/bin/podman inspect -f "{{.State.Health.Status}}" elabftw-db 2>/dev/null)" = "healthy" ] && exit 0; sleep 2; done; echo "timeout waiting for elabftw-db" >&2; exit 1'
 ExecStart=/usr/bin/podman run \
@@ -44,7 +43,6 @@ ExecStart=/usr/bin/podman run \
     --volume elabftw-uploads:/var/lib/elabftw/uploads:U,Z \
     --volume elabftw-exports:/var/lib/elabftw/exports:U,Z \
     --volume elabftw-cache:/var/cache/elabftw:U,Z \
-    --volume %S/state/ldap.conf:/etc/openldap/ldap.conf:ro,z \
     --volume %S/php/zz-ns8-hardening.ini:/etc/php84/conf.d/zz-ns8-hardening.ini:ro,Z \
     --env-file %S/state/elabftw.env \
     ${ELABIMG_IMAGE}
