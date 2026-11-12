@@ -111,14 +111,16 @@ not in this module.
 - **Your own TSA.** The [ns8-tsa module](https://github.com/tebbiworld/ns8-tsa)
   runs an RFC 3161 authority on the cluster. Choose timestamp authority
   *Custom* and set the URL to that service's timestamp endpoint; optionally a
-  user and password if you put it behind HTTP Basic auth. **Caveat:** for a
-  *Custom* authority eLabFTW verifies the token against the container's system
-  trust store (`/etc/ssl/cert.pem`) — it does **not** take an uploaded CA
-  chain. ns8-tsa signs with a self-signed chain by default, so its tokens will
-  not verify in eLabFTW unless that TSA's root certificate is trusted inside
-  the application container (or the TSA issues from a publicly trusted CA).
-  Treat this as an open integration point; until the root is trusted, use a
-  publicly trusted authority.
+  user and password if you put it behind HTTP Basic auth. **Caveat (observed on
+  elabimg 6.0.9):** for a *Custom* authority eLabFTW verifies the token with
+  `openssl ts -verify -CAfile /etc/ssl/cert.pem` — the container's system trust
+  store, which is fixed; a certificate entered in eLabFTW is passed only as an
+  `-untrusted` intermediate, not as a trust anchor. ns8-tsa signs with a
+  self-signed chain by default, so its tokens will not verify in eLabFTW unless
+  that TSA's root certificate is added to the application container's trust
+  store (or the TSA issues from a publicly trusted CA). Treat this as an open
+  integration point; until the root is trusted, use a publicly trusted
+  authority.
 - **A publicly trusted TSA.** eLabFTW ships several (DeltaBlot's free proxy,
   GlobalSign, Universign); these chain to public roots and work out of the box.
   Any other public RFC 3161 service whose signing certificate is publicly
@@ -142,9 +144,11 @@ below say which features to assess — each must be checked against your SOPs.
 - **Locking.** Experiments can be locked (and timestamped). Define when an entry
   is locked and who may unlock it.
 - **Timestamping.** RFC 3161 timestamps (see above) evidence that an entry
-  existed at a point in time. Validate the chosen authority, its certificate and
-  that a timestamp actually verifies. `genTime` depends on the node clock, which
-  the NS8 platform keeps NTP-disciplined.
+  existed at a point in time. The `genTime` is asserted by the timestamp
+  authority, not by this server, so validate the chosen authority, its
+  certificate and that a timestamp actually verifies. If you run your own
+  authority (ns8-tsa), its trusted time is only as good as that node's clock,
+  which the NS8 platform keeps NTP-disciplined.
 - **Electronic signatures.** eLabFTW can sign entries. If you rely on signatures
   for Part 11, validate their meaning, the signer's identity and the binding to
   the record.

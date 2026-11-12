@@ -30,19 +30,20 @@ reqcert = elabftwldap.tls_reqcert()
 state = os.environ["AGENT_STATE_DIR"]
 envfile = os.path.join(state, "elabftw.env")
 
-lines = []
+# Only patch an env file that configure-module has already written; an
+# installed-but-never-configured instance has none, and configure-module writes
+# the full file (with LDAP_TLS_REQCERT) on its first run.
 if os.path.exists(envfile):
     with open(envfile) as fp:
         lines = [line.rstrip("\n") for line in fp if not line.startswith("LDAP_TLS_REQCERT=")]
-lines.append(f"LDAP_TLS_REQCERT={reqcert}")
-
-old_umask = os.umask(0o077)
-try:
-    with open(envfile + ".tmp", "w") as fp:
-        fp.write("\n".join(lines) + "\n")
-    os.replace(envfile + ".tmp", envfile)
-finally:
-    os.umask(old_umask)
+    lines.append(f"LDAP_TLS_REQCERT={reqcert}")
+    old_umask = os.umask(0o077)
+    try:
+        with open(envfile + ".tmp", "w") as fp:
+            fp.write("\n".join(lines) + "\n")
+        os.replace(envfile + ".tmp", envfile)
+    finally:
+        os.umask(old_umask)
 
 # the ldap.conf bind mount is gone; remove the file it used to mount
 try:
