@@ -105,7 +105,7 @@
         "ldap_tls_verify": {
             "type": "boolean",
             "title": "Verify the server certificate",
-            "description": "Check the LDAP server certificate (ldap.conf TLS_REQCERT demand). Off for self-signed certificates (Samba AD, internal CA).",
+            "description": "Check the LDAP server certificate (LDAP_TLS_REQCERT demand). Off for self-signed certificates (Samba AD, internal CA).",
             "default": true
         },
         "ldap_schema": {

@@ -16,6 +16,13 @@
       <cv-column>
         <cv-tile light>
           <cv-form @submit.prevent="configureModule">
+            <NsInlineNotification
+              kind="info"
+              :title="$t('settings.first_account_title')"
+              :description="$t('settings.first_account_info')"
+              :showCloseButton="false"
+              class="notice"
+            />
             <!-- Publishing -->
             <cv-text-input
               :label="$t('settings.host')"

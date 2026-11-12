@@ -25,6 +25,8 @@
     "title": "Settings",
     "configure_instance": "Configure {instance}",
     "save": "Save",
+    "first_account_title": "The first account becomes the administrator",
+    "first_account_info": "The first account of this instance — registered at /register.php or created by the first directory (LDAP) login — becomes the system administrator. Every later account waits for validation by an admin.",
     "host": "Host name (FQDN)",
     "host_placeholder": "eln.example.org",
     "host_helper": "Public host name eLabFTW is published on (SITE_URL). It must resolve to this server.",

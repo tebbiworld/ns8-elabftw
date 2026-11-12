@@ -28,6 +28,10 @@ done < ./passwords.env
 podman volume rm -f elabftw-db >/dev/null 2>&1 || true
 rm -rf restore && mkdir -p restore
 cp elabftw.sql restore/10-elabftw.sql
+# the backup dump is 0600 (module-dump-state); the MySQL image reads the import
+# file as its own uid inside the container, so this transient copy (deleted
+# right after the import) must be readable there.
+chmod 0644 restore/10-elabftw.sql
 cat > restore/zz-stop.sh <<'EOS'
 docker_temp_server_stop
 exit 0

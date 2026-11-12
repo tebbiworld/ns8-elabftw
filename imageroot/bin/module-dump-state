@@ -12,6 +12,11 @@
 set -e -o pipefail
 exec 1>&2
 
+# The dump holds the whole database (all records, plus the LDAP bind password
+# and other secrets eLabFTW encrypts with SECRET_KEY). Keep it readable only by
+# the module user: restic reads it as that user, and module-cleanup-state
+# removes it right after the backup.
+umask 0077
 podman exec elabftw-db sh -c 'mysqldump --single-transaction --routines --triggers -u root --password="$MYSQL_ROOT_PASSWORD" elabftw' > elabftw.sql.tmp
 mv elabftw.sql.tmp elabftw.sql
 echo "eLabFTW database dumped to state/elabftw.sql ($(du -h elabftw.sql | cut -f1))"

@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 tebbi
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# From 1.3.0 the LDAP certificate policy is passed to the elabimg entrypoint as
+# the LDAP_TLS_REQCERT environment variable (demand/never) instead of a
+# read-only ldap.conf bind-mounted over /etc/openldap/ldap.conf. On elabimg
+# 6.0.9 that path is a symlink into the writable /run/openldap the entrypoint
+# renders itself, so the old bind mount makes the container fail to start.
+#
+# configure-module writes LDAP_TLS_REQCERT into state/elabftw.env, but the core
+# does not re-run configure-module on update. Add the variable to the existing
+# env file here so an instance updated from <= 1.2.0 keeps its certificate check
+# (carried from the old LDAP_VALIDATE_CERT) and starts on the new image, and
+# drop the now-unused state/ldap.conf.
+
+import os
+
+import elabftwldap
+
+# For a not-yet-migrated pre-1.3.0 instance, normalise the legacy keys into the
+# environment first so tls_reqcert() reads the right source/verify (idempotent:
+# returns {} for an instance already on the 1.3.0 layout).
+os.environ.update(elabftwldap.legacy_updates(os.environ))
+reqcert = elabftwldap.tls_reqcert()
+
+state = os.environ["AGENT_STATE_DIR"]
+envfile = os.path.join(state, "elabftw.env")
+
+# Only patch an env file that configure-module has already written; an
+# installed-but-never-configured instance has none, and configure-module writes
+# the full file (with LDAP_TLS_REQCERT) on its first run.
+if os.path.exists(envfile):
+    with open(envfile) as fp:
+        lines = [line.rstrip("\n") for line in fp if not line.startswith("LDAP_TLS_REQCERT=")]
+    lines.append(f"LDAP_TLS_REQCERT={reqcert}")
+    old_umask = os.umask(0o077)
+    try:
+        with open(envfile + ".tmp", "w") as fp:
+            fp.write("\n".join(lines) + "\n")
+        os.replace(envfile + ".tmp", envfile)
+    finally:
+        os.umask(old_umask)
+
+# the ldap.conf bind mount is gone; remove the file it used to mount
+try:
+    os.remove(os.path.join(state, "ldap.conf"))
+except FileNotFoundError:
+    pass

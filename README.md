@@ -42,7 +42,7 @@ administrator.**
 | Host name | FQDN, used for the Traefik route and as `SITE_URL`. |
 | Let's Encrypt / HTTP → HTTPS | as in the other modules |
 | Timezone | `PHP_TIMEZONE`/`TZ` |
-| Maximum upload size | `MAX_UPLOAD_SIZE` |
+| Maximum upload size | `MAX_UPLOAD_SIZE` (nginx `client_max_body_size` and PHP `post_max_size`/`upload_max_filesize` inside the image). This is the only binding limit: the module publishes a plain Traefik route (`set-route`, no buffering middleware) and Traefik enforces no request-body-size cap of its own, so nothing in front of the app truncates an upload below this value. |
 | AD/LDAP login | see below |
 
 `SECRET_KEY` is generated once at install time with eLabFTW's own library.
@@ -73,9 +73,10 @@ through the application's code path, exactly as the sysadmin page would
 `ldap_firstname`/`ldap_lastname`, `ldap_use_tls`). Because eLabFTW keeps LDAP in
 its own database, the settings are applied once the application is healthy
 (`bin/apply-ldap`), not from an environment file at container start. The
-certificate check uses `TLS_REQCERT demand`/`never` in a module-managed
-`ldap.conf` mounted into the container (off by default: Samba AD and internal
-CAs use self-signed certificates).
+certificate check is passed to the image as `LDAP_TLS_REQCERT=demand`/`never`
+(the elabimg entrypoint renders `/run/openldap/ldap.conf` from it); it defaults
+to on for a server of its own with TLS, and can be turned off for the
+self-signed certificates of Samba AD and internal CAs.
 
 **How the container reaches the directory.** For a user domain the app
 container talks clear LDAP to the proxy on the node loopback, reached through
@@ -104,8 +105,72 @@ instance accordingly. The group field is therefore not shown for this module.
 ### Timestamping (RFC 3161)
 
 eLabFTW can timestamp experiments with an external timestamp authority
-(sysadmin panel → Timestamping). The [TSA module](https://github.com/tebbiworld/ns8-tsa)
-of this repository provides one on the cluster.
+(sysadmin panel → Timestamping). The authority is configured inside eLabFTW,
+not in this module.
+
+- **Your own TSA.** The [ns8-tsa module](https://github.com/tebbiworld/ns8-tsa)
+  runs an RFC 3161 authority on the cluster. Choose timestamp authority
+  *Custom* and set the URL to that service's timestamp endpoint; optionally a
+  user and password if you put it behind HTTP Basic auth. **Caveat (observed on
+  elabimg 6.0.9):** for a *Custom* authority eLabFTW verifies the token with
+  `openssl ts -verify -CAfile /etc/ssl/cert.pem` — the container's system trust
+  store, which is fixed; a certificate entered in eLabFTW is passed only as an
+  `-untrusted` intermediate, not as a trust anchor. ns8-tsa signs with a
+  self-signed chain by default, so its tokens will not verify in eLabFTW unless
+  that TSA's root certificate is added to the application container's trust
+  store (or the TSA issues from a publicly trusted CA). Treat this as an open
+  integration point; until the root is trusted, use a publicly trusted
+  authority.
+- **A publicly trusted TSA.** eLabFTW ships several (DeltaBlot's free proxy,
+  GlobalSign, Universign); these chain to public roots and work out of the box.
+  Any other public RFC 3161 service whose signing certificate is publicly
+  trusted can be used as *Custom* (for example SignFiles or Starfield).
+
+Record in your SOP which authority is used and keep its certificate reference,
+so timestamps remain verifiable (see *Operating in a regulated environment*).
+
+## Operating in a regulated (GMP / 21 CFR Part 11) environment
+
+This module packages eLabFTW; it makes **no conformity claim**. Whether an
+instance is validated and released for GMP use is decided by the operator's
+quality unit on the basis of their own URS, risk analysis and tests. The points
+below say which features to assess — each must be checked against your SOPs.
+
+**Features to validate**
+
+- **Change history / revisions.** eLabFTW keeps revisions of entries. Decide the
+  retention and whether the revision history meets your audit-trail requirement
+  (who / what / when); confirm ordinary users cannot switch it off.
+- **Locking.** Experiments can be locked (and timestamped). Define when an entry
+  is locked and who may unlock it.
+- **Timestamping.** RFC 3161 timestamps (see above) evidence that an entry
+  existed at a point in time. The `genTime` is asserted by the timestamp
+  authority, not by this server, so validate the chosen authority, its
+  certificate and that a timestamp actually verifies. If you run your own
+  authority (ns8-tsa), its trusted time is only as good as that node's clock,
+  which the NS8 platform keeps NTP-disciplined.
+- **Electronic signatures.** eLabFTW can sign entries. If you rely on signatures
+  for Part 11, validate their meaning, the signer's identity and the binding to
+  the record.
+- **Access and accounts.** Personal accounts (no shared logins), roles and
+  teams, admin validation of new accounts, and a password / 2FA policy per your
+  risk analysis. Note that the **first account becomes sysadmin** (see *Install*)
+  and that a login cannot be restricted to a group (see *No group restriction*).
+
+**Update strategy — update only after review.** The module follows upstream
+eLabFTW: a weekly auto-release pins a newer image and publishes a new module
+version. NS8 does **not** update an installed instance by itself — an
+administrator applies the update deliberately through the Software Center. In a
+validated environment, apply an update only after it is reviewed and released
+under your change control: read the eLabFTW release notes, take a backup, test
+the update on a staging instance first (the schema migration runs on start via
+`AUTO_DB_UPDATE`), then update production.
+
+**Data.** `SECRET_KEY` encrypts the stored secrets and is generated once, never
+regenerated; a backup restores the original (losing it makes the encrypted
+fields unreadable), so back it up confidentially. The authoritative records are
+eLabFTW's database (dumped at backup time) and the uploads/exports volumes —
+verify the restore periodically.
 
 ## Backup and restore
 

@@ -14,12 +14,13 @@ reponame="elabftw"
 # Runtime images pinned through org.nethserver.images (node pre-pulls them and
 # exposes ${ELABIMG_IMAGE} / ${MYSQL_IMAGE} to the units). eLabFTW image
 # (nginx + php-fpm, s6) and MySQL as recommended by upstream.
-elabimg_upstream="docker.io/elabftw/elabimg:6.0.1"
+elabimg_upstream="docker.io/elabftw/elabimg:6.0.9"
 mysql_image="docker.io/library/mysql:8.4.10"
-# The official elabimg is rebuilt with eLabFTW releases only, so it keeps a
-# vulnerable PHP for weeks (6.0.1 to 6.0.8 run PHP 8.4.25/8.4.26, affected by
-# CVE-2026-109618/109619). The module runs an image derived from it with the
-# PHP packages of its Alpine release upgraded to the pinned version.
+# The official elabimg is rebuilt with eLabFTW releases only, so it can keep a
+# PHP with known CVEs for weeks after a patch is out (6.0.1 shipped PHP 8.4.25,
+# affected by CVE-2026-109618/109619). The module runs an image derived from it
+# with the PHP packages of its Alpine release upgraded to the pinned version;
+# this is a no-op when upstream already ships that version (6.0.9 does: 8.4.27).
 php_version="8.4.27"
 elabimg_image="${repobase,,}/elabimg:${elabimg_upstream##*:}-php${php_version}"
 
