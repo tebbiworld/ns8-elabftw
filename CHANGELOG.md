@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.1 — 2026-11-20
+
+### Security
+
+- **MySQL 8.4.10 → 8.4.13.** Oracle's October 2026 Critical Patch Update lists
+  MySQL Server `8.4.0`–`8.4.12` as affected; `8.4.13` is the fixed, current
+  patch of the pinned 8.4 LTS series. In-place upgrade within the same minor —
+  no dump/restore. (The elabimg application image stays at 6.0.9; its 6.0.11
+  bump rides the regular upstream auto-release, which also re-pins the PHP
+  build version.)
+
 ## 1.3.0 — 2026-11-12
 
 ### Added
